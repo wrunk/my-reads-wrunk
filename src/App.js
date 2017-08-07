@@ -1,23 +1,45 @@
 import React from 'react'
-// import * as BooksAPI from './BooksAPI'
+import * as BooksAPI from './BooksAPI'
 import './App.css'
 import SearchPage from './SearchPage'
 import MyShelves from './MyShelves'
 import { Route } from 'react-router-dom'
 
+// Primary component for our shelves app
+
 class BooksApp extends React.Component {
   state = {
-    books: [
-      {title: "Wello Horld", authors: ["Don", "JaggleSon"], status: '', imageURL: 'http://books.google.com/books/content?id=PGR2AwAAQBAJ&printsec=frontcover&img=1&zoom=1&imgtk=AFLRE73-GnPVEyb7MOCxDzOYF1PTQRuf6nCss9LMNOSWBpxBrz8Pm2_mFtWMMg_Y1dx92HT7cUoQBeSWjs3oEztBVhUeDFQX6-tWlWz1-feexS0mlJPjotcwFqAg6hBYDXuK_bkyHD-y&source=gbs_api'}
-    ]
+    books: []
   }
 
-  updateBook(){
+  // I think functions need to be declared like this in order to use 'this' var
+  // declaring like `updateBook(book, selected_val) {` causes 'this' to not work
+  updateBook = (book, selectedVal) => {
+    BooksAPI.update(book, selectedVal).then((resp => {
+      book.shelf = selectedVal
 
+      // I had major problems getting this to work correctly and im
+      // still not totally sure what I was doing wrong. Previously I couldn't
+      // get the home page to re-render when adding a new book from the search
+      // page
+      this.setState((state) => {
+        // To make this easier, just remove the damn book to start with
+        let newBooks = state.books.filter((b) => b.id !== book.id)
+
+        if(book.shelf !== 'none'){ // Add'er back in!
+          newBooks.push(book)
+        }
+        return {books: newBooks}
+      })
+    }))
   }
 
   componentDidMount(){
-    console.log("Shit mounted yo!")
+    // App has mounted, load our books data from the server.
+    BooksAPI.getAll().then((books) => {
+      this.setState({books})
+    })
+
   }
 
   render() {
@@ -33,7 +55,10 @@ class BooksApp extends React.Component {
 
         <Route exact path="/search"
           render={() => (
-            <SearchPage/>
+            <SearchPage
+              books={this.state.books}
+              updateBook={this.updateBook}
+              />
           )}
         />
 
